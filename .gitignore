@@ -13,10 +13,10 @@ backend/env/
 backend/ENV/
 
 # Python
-backend/__pycache__/
-backend/*.py[cod]
-backend/*$py.class
-backend/*.so
+backend/**/__pycache__/
+backend/**/*.py[cod]
+backend/**/*$py.class
+backend/**/*.so
 backend/.Python
 
 # Archivos de distribución
