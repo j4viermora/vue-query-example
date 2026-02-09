@@ -25,7 +25,7 @@ trap cleanup SIGINT SIGTERM
 echo "🚀 Iniciando Backend (FastAPI)..."
 cd backend
 source venv/bin/activate
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000 &
+uvicorn app.main:app --reload --host 0.0.0.0 --port 3001 &
 BACKEND_PID=$!
 cd ..
 
@@ -44,9 +44,9 @@ echo "======================================"
 echo "✅ Servicios iniciados correctamente"
 echo "======================================"
 echo ""
-echo "📍 Frontend: http://localhost:5173"
-echo "📍 Backend API: http://localhost:8000"
-echo "📍 Documentación API: http://localhost:8000/docs"
+echo "📍 Frontend: http://localhost:3000"
+echo "📍 Backend API: http://localhost:3001"
+echo "📍 Documentación API: http://localhost:3001/docs"
 echo ""
 echo "Presiona Ctrl+C para detener ambos servicios"
 echo ""

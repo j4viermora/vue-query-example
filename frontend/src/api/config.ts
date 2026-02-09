@@ -1,18 +1,8 @@
 import axios from 'axios'
 
-// Configurar instancia de Axios
-export const apiClient = axios.create({
-  baseURL: 'http://localhost:8000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001'
 
-// Interceptor para manejar errores globalmente
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error)
-    return Promise.reject(error)
-  }
-)
+export const apiClient = axios.create({
+  baseURL: BASE_URL,
+  // aquí podemos configurar headers, timeouts, etc.
+})

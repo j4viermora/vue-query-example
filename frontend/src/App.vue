@@ -1,30 +1,193 @@
 <script setup lang="ts">
-import HelloWorld from './components/HelloWorld.vue'
+import { ref, computed } from 'vue'
+import SearchInput from './components/SearchInput.vue'
+import TablaReserva from './components/TablaReserva.vue'
+import ModalReserva from './components/ModalReserva.vue'
+import Header from './components/Header.vue'
+import { useReservasQuery } from '@/composables/useReservasQuery'
+import { useCreateReservaMutation } from '@/composables/useCreateReservaMutation'
+import { useUpdateReservaMutation } from '@/composables/useUpdateReservaMutation'
+import { useDeleteReservaMutation } from '@/composables/useDeleteReservaMutation'
+import type { FormData, Reserva } from '@/types/reserva.types'
+import { useToast } from 'vue-toastification'
+
+// ============================================================================
+// Composables
+// ============================================================================
+
+const toast = useToast()
+const { reservas, isLoading, isError } = useReservasQuery()
+const createReservaMutation = useCreateReservaMutation()
+const updateReservaMutation = useUpdateReservaMutation()
+const deleteReservaMutation = useDeleteReservaMutation()
+
+// ============================================================================
+// State
+// ============================================================================
+
+const searchQuery = ref('')
+const isModalOpen = ref(false)
+const isEditMode = ref(false)
+const editingReservaId = ref<string | null>(null)
+
+// Form state
+const formData = ref<FormData>({
+  nombre_amenity: '',
+  fecha: '',
+})
+
+const amenities = [
+  'Piscina',
+  'Quincho',
+  'Cancha de Tenis',
+  'Salón de Eventos',
+]
+
+// ============================================================================
+// Computed
+// ============================================================================
+
+const filteredReservas = computed(() => {
+  if (!searchQuery.value) return reservas.value
+
+  const query = searchQuery.value.toLowerCase()
+  return reservas.value.filter(
+    (reserva) =>
+      reserva.nombre_amenity.toLowerCase().includes(query) ||
+      reserva.fecha.includes(query)
+  )
+})
+
+// ============================================================================
+// Methods
+// ============================================================================
+
+const openCreateModal = () => {
+  isEditMode.value = false
+  editingReservaId.value = null
+  resetForm()
+  isModalOpen.value = true
+}
+
+const openEditModal = (reserva: Reserva) => {
+  isEditMode.value = true
+  editingReservaId.value = reserva.id
+  formData.value = {
+    nombre_amenity: reserva.nombre_amenity,
+    fecha: reserva.fecha,
+  }
+  isModalOpen.value = true
+}
+
+const closeModal = () => {
+  isModalOpen.value = false
+  setTimeout(() => {
+    resetForm()
+    isEditMode.value = false
+    editingReservaId.value = null
+  }, 200)
+}
+
+const resetForm = () => {
+  formData.value = {
+    nombre_amenity: '',
+    fecha: '',
+  }
+}
+
+const handleSubmit = async () => {
+  try {
+    if (isEditMode.value && editingReservaId.value) {
+      await updateReservaMutation.mutateAsync({
+        id: editingReservaId.value,
+        data: formData.value
+      })
+      toast.success("Actualizado exitosamente")
+    } else {
+      await createReservaMutation.mutateAsync(formData.value)
+      toast.success("Creado exitosamente")
+    }
+    closeModal()
+  } catch (error) {
+    console.error('Error al guardar:', error)
+    toast.error("Error al guardar la reserva")
+  }
+}
+
+const handleDelete = async (id: string) => {
+  if(window.confirm('¿Está seguro de que desea eliminar la reserva?')) {
+    try {
+      await deleteReservaMutation.mutateAsync(id)
+      toast.success("Eliminado exitosamente")
+    } catch (error) {
+      console.error('Error al eliminar:', error)
+      toast.error("Error al eliminar la reserva")
+    }
+  }
+}
 </script>
 
 <template>
-  <div>
-    <a href="https://vite.dev" target="_blank">
-      <img src="/vite.svg" class="logo" alt="Vite logo" />
-    </a>
-    <a href="https://vuejs.org/" target="_blank">
-      <img src="./assets/vue.svg" class="logo vue" alt="Vue logo" />
-    </a>
+  <div class="min-h-screen bg-gradient-to-br from-slate-50 via-blue-50 to-indigo-50">
+    <Header @create="openCreateModal" />
+
+    <main class="max-w-7xl mx-auto px-6 py-8">
+      <!-- Search Bar -->
+      <div class="mb-6">
+        <SearchInput v-model="searchQuery" />
+      </div>
+
+      <!-- Loading/Error States -->
+      <div v-if="isLoading" class="flex justify-center py-12">
+        <div class="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+      
+      <div v-else-if="isError" class="py-12 text-center text-red-600 bg-red-50 rounded-xl border border-red-200">
+        <p class="font-semibold">Error al cargar las reservas</p>
+        <p class="text-sm mt-1">Por favor verifica tu conexión o intenta más tarde</p>
+      </div>
+
+      <!-- Data Table -->
+      <TablaReserva 
+        v-else
+        :reservas="filteredReservas"
+        @edit="openEditModal"
+        @delete="handleDelete"
+      />
+
+      <!-- Stats Footer -->
+      <div class="mt-6 flex items-center justify-between text-sm text-slate-600">
+        <div>
+          Mostrando <span class="font-semibold text-slate-800">{{ filteredReservas.length }}</span> de 
+          <span class="font-semibold text-slate-800">{{ reservas.length }}</span> reservas
+        </div>
+      </div>
+    </main>
+
+    <ModalReserva
+      :is-open="isModalOpen"
+      :is-edit-mode="isEditMode"
+      v-model:form-data="formData"
+      :amenities="amenities"
+      @close="closeModal"
+      @submit="handleSubmit"
+    />
   </div>
-  <HelloWorld msg="Vite + Vue" />
 </template>
 
 <style scoped>
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
+::-webkit-scrollbar-track {
+  background: #f1f5f9;
 }
-.logo.vue:hover {
-  filter: drop-shadow(0 0 2em #42b883aa);
+::-webkit-scrollbar-thumb {
+  background: #cbd5e1;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #94a3b8;
 }
 </style>

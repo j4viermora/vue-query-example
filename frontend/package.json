@@ -13,7 +13,8 @@
     "@tanstack/vue-query": "^5.92.9",
     "axios": "^1.13.5",
     "tailwindcss": "^4.1.18",
-    "vue": "^3.5.25"
+    "vue": "^3.5.25",
+    "vue-toastification": "^2.0.0-rc.5"
   },
   "devDependencies": {
     "@types/node": "^24.10.1",
