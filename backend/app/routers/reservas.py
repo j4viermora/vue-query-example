@@ -10,6 +10,8 @@ from app.models.reserva import Reserva, ReservaCreate, ReservaUpdate
 from app.schemas.jsonapi import (
     JsonApiResponse,
     JsonApiErrorResponse,
+    JsonApiCreateRequest,
+    JsonApiUpdateRequest,
     ResourceObject,
     ErrorObject,
 )
@@ -19,22 +21,41 @@ from app.core.config import settings
 router = APIRouter(prefix="/reservas", tags=["Reservas"])
 
 
-def reserva_to_resource(reserva: Reserva) -> ResourceObject:
+def reserva_to_resource(reserva: Reserva, request: Request) -> ResourceObject:
     """
     Convierte un modelo Reserva a un ResourceObject JSON:API
 
     Args:
         reserva: Modelo de reserva
+        request: Request object para construir URLs absolutas
 
     Returns:
-        ResourceObject en formato JSON:API
+        ResourceObject en formato JSON:API con links HATEOAS nombrados
+        que incluyen método HTTP explícito para cada operación disponible
     """
+    base_url = str(request.base_url).rstrip("/")
+    resource_url = f"{base_url}/reservas/{reserva.id}"
+    
     return ResourceObject(
         type="reservas",
         id=reserva.id,
         attributes={
             "fecha": reserva.fecha.isoformat(),
             "nombre_amenity": reserva.nombre_amenity,
+        },
+        links={
+            "reservas.obtener": {
+                "href": resource_url,
+                "method": "GET"
+            },
+            "reservas.actualizar": {
+                "href": resource_url,
+                "method": "PATCH"
+            },
+            "reservas.eliminar": {
+                "href": resource_url,
+                "method": "DELETE"
+            }
         },
     )
 
@@ -74,17 +95,46 @@ def create_error_response(status_code: int, title: str, detail: str) -> JSONResp
     summary="Crear una nueva reserva",
     description="Crea una nueva reserva con los datos proporcionados. El ID se genera automáticamente.",
 )
-async def create_reserva(reserva_data: ReservaCreate, request: Request):
+async def create_reserva(request_body: JsonApiCreateRequest, request: Request):
     """
     POST /reservas - Crea una nueva reserva
 
-    - **fecha**: Fecha de la reserva en formato YYYY-MM-DD
-    - **nombre_amenity**: Nombre de la amenidad (1-100 caracteres)
+    Request body debe seguir el formato JSON:API:
+    ```json
+    {
+      "data": {
+        "type": "reservas",
+        "attributes": {
+          "fecha": "YYYY-MM-DD",
+          "nombre_amenity": "string"
+        }
+      }
+    }
+    ```
 
-    Retorna la reserva creada con status 201 y header Location
+    Retorna la reserva creada con status 201, header Location,
+    y links HATEOAS nombrados con métodos HTTP explícitos.
     """
+    # Validar que el tipo de recurso sea correcto
+    if request_body.data.type != "reservas":
+        return create_error_response(
+            status_code=status.HTTP_409_CONFLICT,
+            title="Conflict",
+            detail=f"Resource type must be 'reservas', got '{request_body.data.type}'",
+        )
+    
+    # Extraer atributos y crear modelo ReservaCreate
+    try:
+        reserva_data = ReservaCreate(**request_body.data.attributes)
+    except Exception as e:
+        return create_error_response(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            title="Validation Error",
+            detail=str(e),
+        )
+    
     reserva = storage.create(reserva_data)
-    resource = reserva_to_resource(reserva)
+    resource = reserva_to_resource(reserva, request)
     response_data = JsonApiResponse(data=resource)
 
     # Construir URL completa del recurso creado
@@ -105,15 +155,31 @@ async def create_reserva(reserva_data: ReservaCreate, request: Request):
     summary="Listar todas las reservas",
     description="Obtiene una lista de todas las reservas existentes.",
 )
-async def list_reservas():
+async def list_reservas(request: Request):
     """
     GET /reservas - Lista todas las reservas
 
-    Retorna un array de reservas en formato JSON:API
+    Retorna un array de reservas en formato JSON:API con links HATEOAS
+    nombrados que incluyen operaciones de colección (listar, crear) y
+    operaciones de recurso individual en cada item.
     """
     reservas = storage.get_all()
-    resources = [reserva_to_resource(reserva) for reserva in reservas]
-    response_data = JsonApiResponse(data=resources)
+    resources = [reserva_to_resource(reserva, request) for reserva in reservas]
+    
+    base_url = str(request.base_url).rstrip("/")
+    response_data = JsonApiResponse(
+        data=resources,
+        links={
+            "reservas.listar": {
+                "href": f"{base_url}/reservas",
+                "method": "GET"
+            },
+            "reservas.crear": {
+                "href": f"{base_url}/reservas",
+                "method": "POST"
+            }
+        }
+    )
 
     return JSONResponse(
         status_code=status.HTTP_200_OK,
@@ -135,13 +201,15 @@ async def list_reservas():
         },
     },
 )
-async def get_reserva(reserva_id: str):
+async def get_reserva(reserva_id: str, request: Request):
     """
     GET /reservas/{reserva_id} - Obtiene una reserva por ID
 
     - **reserva_id**: ID único de la reserva (UUID)
 
-    Retorna la reserva si existe, error 404 si no se encuentra
+    Retorna la reserva si existe con links HATEOAS nombrados
+    (reservas.obtener, reservas.actualizar, reservas.eliminar),
+    error 404 si no se encuentra.
     """
     reserva = storage.get(reserva_id)
 
@@ -152,7 +220,7 @@ async def get_reserva(reserva_id: str):
             detail=f"Reserva with id '{reserva_id}' not found",
         )
 
-    resource = reserva_to_resource(reserva)
+    resource = reserva_to_resource(reserva, request)
     response_data = JsonApiResponse(data=resource)
 
     return JSONResponse(
@@ -175,17 +243,54 @@ async def get_reserva(reserva_id: str):
         },
     },
 )
-async def update_reserva(reserva_id: str, reserva_data: ReservaUpdate):
+async def update_reserva(reserva_id: str, request_body: JsonApiUpdateRequest, request: Request):
     """
     PATCH /reservas/{reserva_id} - Actualiza una reserva parcialmente
 
-    - **reserva_id**: ID único de la reserva (UUID)
-    - **fecha** (opcional): Nueva fecha de la reserva
-    - **nombre_amenity** (opcional): Nuevo nombre de la amenidad
+    Request body debe seguir el formato JSON:API:
+    ```json
+    {
+      "data": {
+        "type": "reservas",
+        "id": "{reserva_id}",
+        "attributes": {
+          "fecha": "YYYY-MM-DD",  // opcional
+          "nombre_amenity": "string"  // opcional
+        }
+      }
+    }
+    ```
 
     Solo se actualizan los campos proporcionados.
-    Retorna la reserva actualizada o error 404 si no existe.
+    Retorna la reserva actualizada con links HATEOAS nombrados,
+    o error 404 si no existe.
     """
+    # Validar que el tipo de recurso sea correcto
+    if request_body.data.type != "reservas":
+        return create_error_response(
+            status_code=status.HTTP_409_CONFLICT,
+            title="Conflict",
+            detail=f"Resource type must be 'reservas', got '{request_body.data.type}'",
+        )
+    
+    # Validar que el ID del body coincida con el ID del path
+    if request_body.data.id != reserva_id:
+        return create_error_response(
+            status_code=status.HTTP_409_CONFLICT,
+            title="Conflict",
+            detail=f"Resource id in body ('{request_body.data.id}') must match id in URL ('{reserva_id}')",
+        )
+    
+    # Extraer atributos y crear modelo ReservaUpdate
+    try:
+        reserva_data = ReservaUpdate(**request_body.data.attributes)
+    except Exception as e:
+        return create_error_response(
+            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            title="Validation Error",
+            detail=str(e),
+        )
+    
     reserva = storage.update(reserva_id, reserva_data)
 
     if not reserva:
@@ -195,7 +300,7 @@ async def update_reserva(reserva_id: str, reserva_data: ReservaUpdate):
             detail=f"Reserva with id '{reserva_id}' not found",
         )
 
-    resource = reserva_to_resource(reserva)
+    resource = reserva_to_resource(reserva, request)
     response_data = JsonApiResponse(data=resource)
 
     return JSONResponse(

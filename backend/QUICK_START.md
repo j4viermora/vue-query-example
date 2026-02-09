@@ -92,6 +92,20 @@ curl -X DELETE http://localhost:8000/reservas/{ID}
     "attributes": {
       "fecha": "2026-02-15",
       "nombre_amenity": "Piscina"
+    },
+    "links": {
+      "reservas.obtener": {
+        "href": "http://localhost:8000/reservas/uuid-generado",
+        "method": "GET"
+      },
+      "reservas.actualizar": {
+        "href": "http://localhost:8000/reservas/uuid-generado",
+        "method": "PATCH"
+      },
+      "reservas.eliminar": {
+        "href": "http://localhost:8000/reservas/uuid-generado",
+        "method": "DELETE"
+      }
     }
   },
   "jsonapi": {

@@ -6,6 +6,8 @@ API REST para gestión de reservas de amenidades siguiendo el estándar JSON:API
 
 - ✅ CRUD completo para el recurso "reservas"
 - ✅ Cumplimiento total con JSON:API v1.1
+- ✅ **Links HATEOAS nombrados** con métodos HTTP explícitos
+- ✅ API completamente autodescriptiva
 - ✅ Almacenamiento en memoria thread-safe
 - ✅ Validación automática con Pydantic
 - ✅ Documentación interactiva automática
@@ -129,6 +131,20 @@ curl -X POST http://localhost:8000/reservas \
     "attributes": {
       "fecha": "2026-02-15",
       "nombre_amenity": "Piscina"
+    },
+    "links": {
+      "reservas.obtener": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "GET"
+      },
+      "reservas.actualizar": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "PATCH"
+      },
+      "reservas.eliminar": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "DELETE"
+      }
     }
   },
   "jsonapi": {
@@ -153,6 +169,16 @@ curl http://localhost:8000/reservas
 **Response (200 OK):**
 ```json
 {
+  "links": {
+    "reservas.listar": {
+      "href": "http://localhost:8000/reservas",
+      "method": "GET"
+    },
+    "reservas.crear": {
+      "href": "http://localhost:8000/reservas",
+      "method": "POST"
+    }
+  },
   "data": [
     {
       "type": "reservas",
@@ -160,14 +186,20 @@ curl http://localhost:8000/reservas
       "attributes": {
         "fecha": "2026-02-15",
         "nombre_amenity": "Piscina"
-      }
-    },
-    {
-      "type": "reservas",
-      "id": "660e8400-e29b-41d4-a716-446655440001",
-      "attributes": {
-        "fecha": "2026-02-20",
-        "nombre_amenity": "Cancha de Tenis"
+      },
+      "links": {
+        "reservas.obtener": {
+          "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+          "method": "GET"
+        },
+        "reservas.actualizar": {
+          "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+          "method": "PATCH"
+        },
+        "reservas.eliminar": {
+          "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+          "method": "DELETE"
+        }
       }
     }
   ],
@@ -193,6 +225,20 @@ curl http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000
     "attributes": {
       "fecha": "2026-02-15",
       "nombre_amenity": "Piscina"
+    },
+    "links": {
+      "reservas.obtener": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "GET"
+      },
+      "reservas.actualizar": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "PATCH"
+      },
+      "reservas.eliminar": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "DELETE"
+      }
     }
   },
   "jsonapi": {
@@ -237,6 +283,20 @@ curl -X PATCH http://localhost:8000/reservas/550e8400-e29b-41d4-a716-44665544000
     "attributes": {
       "fecha": "2026-02-15",
       "nombre_amenity": "Piscina Olímpica"
+    },
+    "links": {
+      "reservas.obtener": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "GET"
+      },
+      "reservas.actualizar": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "PATCH"
+      },
+      "reservas.eliminar": {
+        "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+        "method": "DELETE"
+      }
     }
   },
   "jsonapi": {
@@ -316,7 +376,9 @@ Esta API cumple con JSON:API v1.1. Características principales:
 
 - ✅ Media Type: `application/vnd.api+json`
 - ✅ Top-level `data` o `errors` (nunca ambos)
-- ✅ Resource objects con `type`, `id`, `attributes`
+- ✅ Resource objects con `type`, `id`, `attributes`, `links`
+- ✅ **Links HATEOAS nombrados** con métodos HTTP explícitos
+- ✅ **API autodescriptiva** - cliente descubre operaciones disponibles
 - ✅ Status codes HTTP correctos
 - ✅ Header `Location` en respuestas POST
 - ✅ PATCH para actualizaciones parciales

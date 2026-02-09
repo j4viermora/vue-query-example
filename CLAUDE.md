@@ -2,9 +2,12 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> **📚 For comprehensive project documentation, see [agents.md](agents.md)**  
+> This file contains a quick reference. For detailed architecture, JSON:API implementation, and development guidelines, refer to agents.md.
+
 ## Project Overview
 
-Full-stack reservation management system ("Sistema de Reservas") with FastAPI backend and Vue 3 frontend. This is an educational project demonstrating JSON:API v1.1 implementation with in-memory storage.
+Full-stack reservation management system ("Sistema de Reservas") with FastAPI backend and Vue 3 frontend. This is an educational project demonstrating **JSON:API v1.1 complete implementation** (requests and responses) with in-memory storage.
 
 ## Development Commands
 
@@ -224,10 +227,18 @@ Vite config in `frontend/vite.config.ts`:
 Use the interactive Swagger UI at http://localhost:8000/docs or curl:
 
 ```bash
-# Create reservation
+# Create reservation (JSON:API format)
 curl -X POST http://localhost:8000/reservas \
-  -H "Content-Type: application/json" \
-  -d '{"fecha": "2026-02-15", "nombre_amenity": "Piscina"}'
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "reservas",
+      "attributes": {
+        "fecha": "2026-02-15",
+        "nombre_amenity": "Piscina"
+      }
+    }
+  }'
 
 # List all reservations
 curl http://localhost:8000/reservas
@@ -235,11 +246,22 @@ curl http://localhost:8000/reservas
 # Get specific reservation
 curl http://localhost:8000/reservas/{id}
 
-# Update reservation
+# Update reservation (JSON:API format)
 curl -X PATCH http://localhost:8000/reservas/{id} \
-  -H "Content-Type: application/json" \
-  -d '{"nombre_amenity": "Piscina Olímpica"}'
+  -H "Content-Type: application/vnd.api+json" \
+  -d '{
+    "data": {
+      "type": "reservas",
+      "id": "{id}",
+      "attributes": {
+        "nombre_amenity": "Piscina Olímpica"
+      }
+    }
+  }'
 
 # Delete reservation
 curl -X DELETE http://localhost:8000/reservas/{id}
 ```
+
+> **Note**: Requests must follow JSON:API v1.1 format with `data`, `type`, and `attributes`.  
+> See [agents.md](agents.md) for complete API documentation and examples.

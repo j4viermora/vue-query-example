@@ -12,12 +12,45 @@ class JsonApiVersion(BaseModel):
     version: str = "1.1"
 
 
+class LinkObject(BaseModel):
+    """
+    Objeto de link extendido HATEOAS con método HTTP explícito.
+    
+    Permite especificar el método HTTP de forma explícita para cada operación,
+    haciendo la API completamente autodescriptiva.
+    Compatible con JSON:API v1.1 que permite links como strings u objetos.
+    """
+
+    href: str = Field(..., description="URL del link")
+    method: str = Field(
+        ..., 
+        description="Método HTTP para esta operación (GET, POST, PATCH, DELETE, etc.)"
+    )
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+                    "method": "PATCH"
+                }
+            ]
+        }
+    }
+
+
 class ResourceObject(BaseModel):
     """Objeto de recurso JSON:API"""
 
     type: str = Field(..., description="Tipo de recurso")
     id: str = Field(..., description="ID único del recurso")
     attributes: Dict[str, Any] = Field(..., description="Atributos del recurso")
+    links: Optional[Dict[str, Union[str, LinkObject]]] = Field(
+        None, description="Links relacionados al recurso (HATEOAS). Puede ser string o LinkObject con meta"
+    )
+    relationships: Optional[Dict[str, Any]] = Field(
+        None, description="Relaciones con otros recursos"
+    )
 
     model_config = {
         "json_schema_extra": {
@@ -28,6 +61,20 @@ class ResourceObject(BaseModel):
                     "attributes": {
                         "fecha": "2026-02-15",
                         "nombre_amenity": "Piscina"
+                    },
+                    "links": {
+                        "reservas.obtener": {
+                            "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+                            "method": "GET"
+                        },
+                        "reservas.actualizar": {
+                            "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+                            "method": "PATCH"
+                        },
+                        "reservas.eliminar": {
+                            "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+                            "method": "DELETE"
+                        }
                     }
                 }
             ]
@@ -40,6 +87,9 @@ class JsonApiResponse(BaseModel):
 
     data: Union[ResourceObject, List[ResourceObject]] = Field(
         ..., description="Recurso(s) primario(s)"
+    )
+    links: Optional[Dict[str, Union[str, LinkObject]]] = Field(
+        None, description="Links relacionados al documento (HATEOAS). Puede ser string o LinkObject con meta"
     )
     jsonapi: JsonApiVersion = Field(
         default_factory=JsonApiVersion, description="Objeto de versión JSON:API"
@@ -55,9 +105,88 @@ class JsonApiResponse(BaseModel):
                         "attributes": {
                             "fecha": "2026-02-15",
                             "nombre_amenity": "Piscina"
+                        },
+                        "links": {
+                            "reservas.obtener": {
+                                "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+                                "method": "GET"
+                            },
+                            "reservas.actualizar": {
+                                "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+                                "method": "PATCH"
+                            },
+                            "reservas.eliminar": {
+                                "href": "http://localhost:8000/reservas/550e8400-e29b-41d4-a716-446655440000",
+                                "method": "DELETE"
+                            }
+                        }
+                    },
+                    "links": {
+                        "reservas.listar": {
+                            "href": "http://localhost:8000/reservas",
+                            "method": "GET"
+                        },
+                        "reservas.crear": {
+                            "href": "http://localhost:8000/reservas",
+                            "method": "POST"
                         }
                     },
                     "jsonapi": {"version": "1.1"}
+                }
+            ]
+        }
+    }
+
+
+class JsonApiCreateRequest(BaseModel):
+    """Request para crear un recurso en formato JSON:API"""
+
+    class ResourceData(BaseModel):
+        """Datos del recurso a crear"""
+        type: str = Field(..., description="Tipo de recurso")
+        attributes: Dict[str, Any] = Field(..., description="Atributos del recurso")
+
+    data: ResourceData = Field(..., description="Datos del recurso a crear")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "data": {
+                        "type": "reservas",
+                        "attributes": {
+                            "fecha": "2026-02-15",
+                            "nombre_amenity": "Piscina"
+                        }
+                    }
+                }
+            ]
+        }
+    }
+
+
+class JsonApiUpdateRequest(BaseModel):
+    """Request para actualizar un recurso en formato JSON:API"""
+
+    class ResourceData(BaseModel):
+        """Datos del recurso a actualizar"""
+        type: str = Field(..., description="Tipo de recurso")
+        id: str = Field(..., description="ID del recurso")
+        attributes: Dict[str, Any] = Field(..., description="Atributos a actualizar")
+
+    data: ResourceData = Field(..., description="Datos del recurso a actualizar")
+
+    model_config = {
+        "json_schema_extra": {
+            "examples": [
+                {
+                    "data": {
+                        "type": "reservas",
+                        "id": "550e8400-e29b-41d4-a716-446655440000",
+                        "attributes": {
+                            "nombre_amenity": "Piscina Olímpica"
+                        }
+                    }
                 }
             ]
         }

@@ -22,9 +22,15 @@ app = FastAPI(
 @app.middleware("http")
 async def add_jsonapi_content_type(request: Request, call_next):
     """
-    Middleware que agrega el Content-Type JSON:API a todas las respuestas
+    Middleware que agrega el Content-Type JSON:API a todas las respuestas de la API.
+    Excluye endpoints de documentación para preservar su content-type original.
     """
     response = await call_next(request)
+
+    # Excluir endpoints de documentación
+    documentation_paths = ["/docs", "/redoc", "/openapi.json"]
+    if request.url.path in documentation_paths:
+        return response
 
     # Solo agregar el header si la respuesta tiene contenido
     # 204 No Content no debe tener Content-Type

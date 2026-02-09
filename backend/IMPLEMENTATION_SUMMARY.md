@@ -81,21 +81,26 @@ La API de Reservas ha sido implementada exitosamente siguiendo el estándar JSON
    - Top-level `errors` para errores
    - Nunca ambos simultáneamente
 3. **Resource Objects**:
-   - Contienen `type`, `id`, `attributes`
+   - Contienen `type`, `id`, `attributes`, `links`
    - Formato consistente
-4. **Status Codes HTTP**:
+4. **Links HATEOAS**:
+   - Links nombrados semánticamente (`reservas.obtener`, `reservas.actualizar`, etc.)
+   - Método HTTP explícito en cada link
+   - Links de colección y de recurso individual
+   - API completamente autodescriptiva
+5. **Status Codes HTTP**:
    - 200 OK para GET/PATCH exitosos
    - 201 Created para POST
    - 204 No Content para DELETE
    - 404 Not Found para recursos no encontrados
    - 422 Unprocessable Entity para validación
-5. **Headers**:
+6. **Headers**:
    - Location en respuestas 201
    - Content-Type correcto en todas las respuestas
-6. **Métodos HTTP**:
+7. **Métodos HTTP**:
    - PATCH para actualizaciones parciales (no PUT)
    - DELETE retorna 204 sin body
-7. **Errores**:
+8. **Errores**:
    - Array de objetos error
    - Campos `status`, `title`, `detail`
    - Formato JSON:API consistente
@@ -152,12 +157,26 @@ uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
 Todas las respuestas cumplen con:
 
 ```json
-// Respuesta exitosa
+// Respuesta exitosa con HATEOAS
 {
   "data": {
     "type": "reservas",
     "id": "uuid-here",
-    "attributes": { ... }
+    "attributes": { ... },
+    "links": {
+      "reservas.obtener": {
+        "href": "http://localhost:8000/reservas/uuid-here",
+        "method": "GET"
+      },
+      "reservas.actualizar": {
+        "href": "http://localhost:8000/reservas/uuid-here",
+        "method": "PATCH"
+      },
+      "reservas.eliminar": {
+        "href": "http://localhost:8000/reservas/uuid-here",
+        "method": "DELETE"
+      }
+    }
   },
   "jsonapi": { "version": "1.1" }
 }
