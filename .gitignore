@@ -1,0 +1,122 @@
+# ============================================
+# GITIGNORE PARA MONOREPO (Frontend + Backend)
+# ============================================
+
+# ============================================
+# BACKEND (Python/FastAPI)
+# ============================================
+
+# Entorno virtual
+backend/venv/
+backend/.venv/
+backend/env/
+backend/ENV/
+
+# Python
+backend/__pycache__/
+backend/*.py[cod]
+backend/*$py.class
+backend/*.so
+backend/.Python
+
+# Archivos de distribución
+backend/build/
+backend/develop-eggs/
+backend/dist/
+backend/downloads/
+backend/eggs/
+backend/.eggs/
+backend/lib/
+backend/lib64/
+backend/parts/
+backend/sdist/
+backend/var/
+backend/wheels/
+backend/*.egg-info/
+backend/.installed.cfg
+backend/*.egg
+
+# PyInstaller
+backend/*.manifest
+backend/*.spec
+
+# Logs
+backend/*.log
+backend/pip-log.txt
+backend/pip-delete-this-directory.txt
+
+# Testing
+backend/.pytest_cache/
+backend/.coverage
+backend/htmlcov/
+backend/.tox/
+
+# Base de datos
+backend/*.db
+backend/*.sqlite
+backend/*.sqlite3
+
+# Variables de entorno
+backend/.env
+backend/.env.local
+
+# IDE
+backend/.vscode/
+backend/.idea/
+
+# ============================================
+# FRONTEND (React/Vite)
+# ============================================
+
+# Dependencias
+frontend/node_modules/
+
+# Build
+frontend/dist/
+frontend/dist-ssr/
+frontend/build/
+
+# Logs
+frontend/npm-debug.log*
+frontend/yarn-debug.log*
+frontend/yarn-error.log*
+frontend/pnpm-debug.log*
+frontend/lerna-debug.log*
+
+# Cache
+frontend/.vite/
+frontend/.cache/
+
+# Variables de entorno
+frontend/.env
+frontend/.env.local
+frontend/.env.*.local
+
+# Testing
+frontend/coverage/
+
+# IDE
+frontend/.vscode/
+frontend/.idea/
+
+# ============================================
+# GENERAL (Raíz y común)
+# ============================================
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE (raíz)
+.vscode/
+.idea/
+
+# Variables de entorno (raíz)
+.env
+.env.local
+
+# Logs generales
+*.log
