@@ -4,8 +4,7 @@ Modelos Pydantic para el recurso Reserva
 
 from datetime import date
 from typing import Optional
-from pydantic import BaseModel, Field, UUID4
-from uuid import uuid4
+from pydantic import BaseModel, Field
 
 
 class ReservaCreate(BaseModel):
@@ -50,9 +49,9 @@ class ReservaUpdate(BaseModel):
 
 
 class Reserva(BaseModel):
-    """Modelo completo de reserva con id"""
+    """Modelo completo de reserva con id (entero secuencial como string)"""
 
-    id: str = Field(default_factory=lambda: str(uuid4()), description="ID único de la reserva (UUID)")
+    id: str = Field(..., description="ID único de la reserva (Entero secuencial)")
     fecha: date = Field(..., description="Fecha de la reserva")
     nombre_amenity: str = Field(..., description="Nombre de la amenidad")
 
@@ -60,7 +59,7 @@ class Reserva(BaseModel):
         "json_schema_extra": {
             "examples": [
                 {
-                    "id": "550e8400-e29b-41d4-a716-446655440000",
+                    "id": "1",
                     "fecha": "2026-02-15",
                     "nombre_amenity": "Piscina"
                 }

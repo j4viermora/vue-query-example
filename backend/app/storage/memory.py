@@ -8,15 +8,16 @@ from app.models.reserva import Reserva, ReservaCreate, ReservaUpdate
 
 
 class InMemoryStorage:
-    """Almacenamiento en memoria thread-safe usando diccionario Python"""
+    """Almacenamiento en memoria thread-safe usando diccionario Python con ID secuencial"""
 
     def __init__(self):
         self._storage: Dict[str, Reserva] = {}
+        self._counter = 0  # Contador para IDs secuenciales
         self._lock = threading.Lock()
 
     def create(self, reserva_data: ReservaCreate) -> Reserva:
         """
-        Crea una nueva reserva con ID auto-generado
+        Crea una nueva reserva con ID secuencial auto-generado
 
         Args:
             reserva_data: Datos de la reserva a crear
@@ -25,7 +26,12 @@ class InMemoryStorage:
             Reserva creada con ID generado
         """
         with self._lock:
+            # Incrementar contador y usar como ID
+            self._counter += 1
+            new_id = str(self._counter)
+
             reserva = Reserva(
+                id=new_id,
                 fecha=reserva_data.fecha,
                 nombre_amenity=reserva_data.nombre_amenity
             )
@@ -53,7 +59,14 @@ class InMemoryStorage:
             Lista de todas las reservas
         """
         with self._lock:
-            return list(self._storage.values())
+            # Ordenar por ID numérico para consistencia
+            reservas = list(self._storage.values())
+            try:
+                reservas.sort(key=lambda x: int(x.id))
+            except ValueError:
+                # Fallback si hay IDs no numéricos (no debería pasar)
+                reservas.sort(key=lambda x: x.id)
+            return reservas
 
     def update(self, reserva_id: str, reserva_data: ReservaUpdate) -> Optional[Reserva]:
         """
