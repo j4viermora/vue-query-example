@@ -7,7 +7,7 @@ defineProps<{
 
 const emit = defineEmits<{
   edit: [reserva: Reserva]
-  delete: [id: string]
+  delete: [reserva: Reserva]
 }>()
 </script>
 
@@ -67,7 +67,7 @@ const emit = defineEmits<{
             </svg>
           </button>
           <button
-            @click="emit('delete', reserva.id)"
+            @click="emit('delete', reserva)"
             class="p-2 text-red-600 hover:bg-red-100 rounded-lg transition-colors duration-150"
             title="Eliminar"
           >

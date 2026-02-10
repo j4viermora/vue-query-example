@@ -4,22 +4,35 @@ import type { Reserva, UpdateReservaPayload } from '@/types/reserva.types'
 import { QueryKeys } from '@/api/query-keys'
 import { updateReserva } from '@/api/queries'
 
+type UpdateReservaParams = {
+  url: string
+  data: Omit<Reserva, '_links'>
+}
+
 export const useUpdateReservaMutation = () => {
   const queryClient = useQueryClient()
 
-  return useMutation({
-    mutationFn: ({ id, data }: { id: string; data: Partial<Omit<Reserva, 'id'>> }) => {
+  const mutation = useMutation({
+    mutationFn: ({
+      url,
+      data
+    }: UpdateReservaParams) => {
       const payload: UpdateReservaPayload = {
         data: {
           type: 'reservas',
-          id,
+          id: data.id,
           attributes: data
         }
       }
-      return updateReserva(id, payload)
+      return updateReserva(url, payload)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: [QueryKeys.Reservas] })
     },
   })
+
+  return {
+    ...mutation,
+    updateReserva: mutation.mutateAsync 
+  }
 }
