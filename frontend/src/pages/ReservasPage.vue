@@ -17,7 +17,6 @@ import Footer from '@/components/Footer.vue'
 import { useReservasQuery } from '@/composables/useReservasQuery'
 import { useCreateReservaMutation } from '@/composables/useCreateReservaMutation'
 import { useUpdateReservaMutation } from '@/composables/useUpdateReservaMutation'
-import { useDeleteReservaMutation } from '@/composables/useDeleteReservaMutation'
 import { useToast } from 'vue-toastification'
 
 // ============================================================================
@@ -33,7 +32,6 @@ const toast = useToast()
 const { reservas, isLoading, isError } = useReservasQuery()
 const createReservaMutation = useCreateReservaMutation()
 const updateReservaMutation = useUpdateReservaMutation()
-const deleteReservaMutation = useDeleteReservaMutation()
 
 // ============================================================================
 // State
@@ -132,11 +130,13 @@ const handleSubmit = async () => {
   }
 }
 
-const handleDelete = async (reserva: Reserva) => {
+const handleDelete = async (reserva:Reserva) => {
+  console.log(reserva)
   if(window.confirm('¿Está seguro de que desea eliminar la reserva?')) {
     try {
-      await deleteReservaMutation.mutateAsync(reserva._links.actualizar.href as string)
-      toast.success("Eliminado exitosamente")
+     // TODO: implementar delete
+     window.alert("TODO: por implementar")
+    // toast.success("Eliminado exitosamente")
     } catch (error) {
       console.error('Error al eliminar:', error)
       toast.error("Error al eliminar la reserva")
