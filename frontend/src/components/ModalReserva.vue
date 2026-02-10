@@ -10,7 +10,6 @@ const props = defineProps<{
   isOpen: boolean
   isEditMode: boolean
   formData: FormData
-  amenities: string[]
 }>()
 
 const emit = defineEmits<{
@@ -26,6 +25,14 @@ const modalTitle = computed(() => {
 const submitButtonText = computed(() => {
   return props.isEditMode ? 'Guardar Cambios' : 'Crear Reserva'
 })
+
+
+const amenities = [
+  'Piscina',
+  'Quincho',
+  'Cancha de Tenis',
+  'Salón de Eventos',
+]
 
 const updateField = (field: keyof FormData, value: string) => {
   emit('update:formData', {
