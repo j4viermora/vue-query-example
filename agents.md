@@ -112,13 +112,15 @@ Domain Model → JSON:API Schema → Response
 {
   "data": {
     "type": "reservas",
-    "id": "uuid-aqui",
+    "id": "1",
     "attributes": {
       "nombre_amenity": "Piscina Olímpica"
     }
   }
 }
 ```
+
+> **Note**: IDs are sequential integers (1, 2, 3...) returned as strings.
 
 #### Responses
 
@@ -127,13 +129,24 @@ Domain Model → JSON:API Schema → Response
 {
   "data": {
     "type": "reservas",
-    "id": "uuid",
+    "id": "1",
     "attributes": {
       "fecha": "2026-02-15",
       "nombre_amenity": "Piscina"
     },
     "links": {
-      "self": "http://localhost:8000/reservas/uuid"
+      "reservas.obtener": {
+        "href": "http://localhost:8000/reservas/1",
+        "method": "GET"
+      },
+      "reservas.actualizar": {
+        "href": "http://localhost:8000/reservas/1",
+        "method": "PATCH"
+      },
+      "reservas.eliminar": {
+        "href": "http://localhost:8000/reservas/1",
+        "method": "DELETE"
+      }
     },
     "relationships": null
   },
@@ -142,20 +155,34 @@ Domain Model → JSON:API Schema → Response
 }
 ```
 
+> **HATEOAS Mejorado**: Los links ahora son objetos con `href` y `method` explícito,
+> usando nombres semánticos (reservas.obtener, reservas.actualizar, etc.) en lugar de "self".
+
 **Colección:**
 ```json
 {
   "data": [
     {
       "type": "reservas",
-      "id": "uuid",
+      "id": "1",
       "attributes": {...},
-      "links": {"self": "..."},
+      "links": {
+        "reservas.obtener": {"href": "...", "method": "GET"},
+        "reservas.actualizar": {"href": "...", "method": "PATCH"},
+        "reservas.eliminar": {"href": "...", "method": "DELETE"}
+      },
       "relationships": null
     }
   ],
   "links": {
-    "self": "http://localhost:8000/reservas"
+    "reservas.listar": {
+      "href": "http://localhost:8000/reservas",
+      "method": "GET"
+    },
+    "reservas.crear": {
+      "href": "http://localhost:8000/reservas",
+      "method": "POST"
+    }
   },
   "jsonapi": {"version": "1.1"}
 }
@@ -216,7 +243,9 @@ Domain Model → JSON:API Schema → Response
 
 **InMemoryStorage** (`storage/memory.py`):
 - Thread-safe usando `threading.Lock`
+- **IDs secuenciales**: Usa contador interno (1, 2, 3...) en lugar de UUIDs
 - Métodos: `create()`, `get()`, `get_all()`, `update()`, `delete()`
+- `get_all()` retorna reservas ordenadas por ID numérico
 - Datos se pierden al reiniciar servidor
 - Fácil de reemplazar con DB (misma interfaz)
 
@@ -230,70 +259,134 @@ Domain Model → JSON:API Schema → Response
 - **Vite** 7.3.1 - Build tool
 - **TypeScript** 5.9.3 - Type safety
 - **Tailwind CSS** 4.1.18 - Styling
-- **TanStack Query** (planeado) - Data fetching
-- **Axios** (planeado) - HTTP client
+- **TanStack Query** 5.92.9 - Data fetching & state management ✅ **Implementado**
+- **Axios** 1.13.5 - HTTP client ✅ **Implementado**
+- **Vue Toastification** 2.0.0-rc.5 - Toast notifications ✅ **Implementado**
 
 ### Estructura de Directorios
 
 ```
 frontend/src/
-├── main.ts              # Entry point
-├── App.vue              # Root component
+├── main.ts              # Entry point con TanStack Query setup
+├── App.vue              # Root component con CRUD completo
 ├── style.css            # Global styles
 ├── api/
-│   ├── config.ts        # Axios instance
-│   └── queries.ts       # API queries (vacío por ahora)
+│   ├── config.ts        # Axios instance configurada
+│   ├── queries.ts       # Funciones API con JSON:API
+│   └── query-keys.ts    # Query keys para TanStack Query
 ├── components/
-│   └── HelloWorld.vue   # Componente de ejemplo
+│   ├── Header.vue       # Encabezado con botón crear
+│   ├── SearchInput.vue  # Componente de búsqueda
+│   ├── TablaReserva.vue # Tabla de datos responsive
+│   └── ModalReserva.vue # Modal crear/editar
+├── composables/
+│   ├── useReservasQuery.ts          # Query para listar
+│   ├── useCreateReservaMutation.ts  # Mutation crear
+│   ├── useUpdateReservaMutation.ts  # Mutation actualizar
+│   └── useDeleteReservaMutation.ts  # Mutation eliminar
+├── types/
+│   └── reserva.types.ts # Tipos TypeScript
+├── utils/
+│   └── jsonapi-transformer.ts # Transformer JSON:API → plain objects
 └── assets/
     └── vue.svg
 ```
 
-### Arquitectura de Datos (Planeada)
+### Arquitectura de Datos ✅ **Implementada**
 
 **Flujo de datos:**
 ```
-Componente → Composable → TanStack Query → Axios → 
-Transformer → Backend API
+Componente → Composable → TanStack Query → Axios →
+JSON:API Transformer → Backend API
 ```
 
-**Capas:**
-1. **Componentes** - UI y lógica de presentación
-2. **Composables** - Lógica de negocio reutilizable
-3. **Queries/Mutations** - Operaciones de datos (TanStack Query)
-4. **Transformers** - Conversión JSON:API ↔ Domain models
-5. **Axios** - Cliente HTTP
+**Capas implementadas:**
+1. **Componentes** - UI completa con búsqueda, tabla, modal
+2. **Composables** - 4 composables para CRUD completo
+3. **Queries/Mutations** - TanStack Query configurado y funcionando
+4. **Transformers** - `jsonapi-transformer.ts` convierte JSON:API a objetos planos
+5. **Axios** - Cliente HTTP configurado con interceptors
 
-### Configuración Actual
+### Configuración Implementada
 
 **Axios** (`api/config.ts`):
 ```typescript
 import axios from 'axios'
 
-export const apiClient = axios.create({
-  baseURL: 'http://localhost:8000',
-  headers: {
-    'Content-Type': 'application/json',
-  },
-})
+const BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8000'
 
-apiClient.interceptors.response.use(
-  (response) => response,
-  (error) => {
-    console.error('API Error:', error)
-    return Promise.reject(error)
-  }
-)
+export const apiClient = axios.create({
+  baseURL: BASE_URL,
+})
 ```
 
-### Estado Actual
+**TanStack Query** (`main.ts`):
+```typescript
+import { VueQueryPlugin } from '@tanstack/vue-query'
+app.use(VueQueryPlugin)
+```
+
+**JSON:API Transformer** (`utils/jsonapi-transformer.ts`):
+- Convierte recursos JSON:API a objetos planos
+- Simplifica nombres de links (reservas.obtener → obtener)
+- Agrega campo `_links` con HATEOAS para uso fácil
+
+### Estado Actual ✅
 
 - ✅ Proyecto configurado con Vite + Vue 3 + TypeScript
 - ✅ Tailwind CSS integrado
 - ✅ Axios configurado
-- ⏳ Queries/Mutations pendientes
-- ⏳ Composables pendientes
-- ⏳ Componentes de UI pendientes
+- ✅ **Queries/Mutations completamente implementadas**
+- ✅ **4 Composables CRUD operativos**
+- ✅ **UI completa: Header, SearchInput, TablaReserva, ModalReserva**
+- ✅ **Vue Toastification para notificaciones**
+- ✅ **Búsqueda/filtrado en tiempo real**
+- ✅ **JSON:API transformer funcional**
+
+---
+
+## JSON:API Transformer
+
+El frontend incluye un transformer que convierte respuestas JSON:API en objetos planos:
+
+**Ubicación**: `frontend/src/utils/jsonapi-transformer.ts`
+
+**Funcionalidad**:
+1. **`transformResource()`** - Convierte un recurso individual
+2. **`transformCollection()`** - Convierte colecciones
+
+**Ejemplo de transformación**:
+
+```typescript
+// Respuesta JSON:API del backend
+{
+  type: "reservas",
+  id: "1",
+  attributes: { fecha: "2026-02-15", nombre_amenity: "Piscina" },
+  links: {
+    "reservas.obtener": { href: "...", method: "GET" },
+    "reservas.actualizar": { href: "...", method: "PATCH" }
+  }
+}
+
+// Después de transformResource()
+{
+  id: "1",
+  type: "reservas",
+  fecha: "2026-02-15",
+  nombre_amenity: "Piscina",
+  _links: {
+    obtener: { href: "...", method: "GET" },      // Nombre simplificado
+    actualizar: { href: "...", method: "PATCH" }  // Nombre simplificado
+  }
+}
+```
+
+**Beneficios**:
+- Objetos planos más fáciles de usar en componentes
+- Links simplificados (obtener, actualizar vs reservas.obtener, reservas.actualizar)
+- Conserva método HTTP para uso HATEOAS
+- Type-safe con TypeScript
 
 ---
 
@@ -407,19 +500,32 @@ curl -X POST http://localhost:8000/reservas \
     }
   }'
 
+# Respuesta incluirá ID secuencial y links HATEOAS con method:
+# {
+#   "data": {
+#     "type": "reservas",
+#     "id": "1",
+#     "links": {
+#       "reservas.obtener": {"href": "...", "method": "GET"},
+#       "reservas.actualizar": {"href": "...", "method": "PATCH"},
+#       "reservas.eliminar": {"href": "...", "method": "DELETE"}
+#     }
+#   }
+# }
+
 # Listar reservas
 curl http://localhost:8000/reservas
 
-# Obtener reserva específica
-curl http://localhost:8000/reservas/{id}
+# Obtener reserva específica (usar ID secuencial: 1, 2, 3...)
+curl http://localhost:8000/reservas/1
 
 # Actualizar reserva (JSON:API format)
-curl -X PATCH http://localhost:8000/reservas/{id} \
+curl -X PATCH http://localhost:8000/reservas/1 \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "reservas",
-      "id": "{id}",
+      "id": "1",
       "attributes": {
         "nombre_amenity": "Piscina Olímpica"
       }
@@ -427,7 +533,7 @@ curl -X PATCH http://localhost:8000/reservas/{id} \
   }'
 
 # Eliminar reserva
-curl -X DELETE http://localhost:8000/reservas/{id}
+curl -X DELETE http://localhost:8000/reservas/1
 ```
 
 ### Backend - Usando Swagger UI
@@ -445,9 +551,11 @@ curl -X DELETE http://localhost:8000/reservas/{id}
 ### Backend
 
 - ✅ **JSON:API v1.1 completo**: Requests y responses siguen el estándar
-- ✅ **HATEOAS**: Todos los recursos incluyen links `self`
+- ✅ **HATEOAS mejorado**: Links con `href` y `method` explícito, nombres semánticos
+- ✅ **IDs secuenciales**: Sistema de conteo simple (1, 2, 3...) en lugar de UUIDs
 - ✅ **Validaciones robustas**: Tipo de recurso, ID matching, atributos
 - ✅ **Thread-safe**: Storage usa locks para concurrencia
+- ✅ **CORS configurado**: Puerto 5173 para frontend Vite
 - ⚠️ **No persistente**: Datos se pierden al reiniciar
 - ⚠️ **Sin autenticación**: API pública sin seguridad
 - ⚠️ **Sin paginación**: Retorna todos los recursos
@@ -456,8 +564,12 @@ curl -X DELETE http://localhost:8000/reservas/{id}
 
 - ✅ **TypeScript**: Type safety en todo el código
 - ✅ **Tailwind CSS v4**: Styling moderno
-- ⏳ **Sin integración con backend**: Pendiente implementar queries
-- ⏳ **Sin estado global**: Pendiente agregar store si es necesario
+- ✅ **Integración completa con backend**: TanStack Query + Axios funcionando
+- ✅ **CRUD completo**: Create, Read, Update, Delete operativos
+- ✅ **JSON:API transformer**: Conversión automática de respuestas
+- ✅ **Notificaciones**: Vue Toastification para feedback
+- ✅ **Búsqueda en tiempo real**: Filtrado por amenity y fecha
+- ⚠️ **Sin estado global persistente**: Solo TanStack Query cache (suficiente por ahora)
 
 ---
 

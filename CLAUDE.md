@@ -140,10 +140,11 @@ backend/app/
 ### Important Backend Notes
 
 - **Storage is non-persistent**: Data is lost when server restarts
-- **IDs are auto-generated**: UUIDs created automatically in Reserva model
+- **IDs are auto-generated**: Sequential numeric IDs (1, 2, 3...) created automatically in storage layer
 - **Thread-safe**: All storage operations use locks for concurrent access
 - **Validation**: Pydantic models validate fecha (date) and nombre_amenity (1-100 chars)
 - **Error handling**: Custom exception handler in main.py formats validation errors as JSON:API
+- **HATEOAS Enhanced**: Links include explicit HTTP methods (GET, POST, PATCH, DELETE) with semantic names
 
 ## Frontend Architecture
 
@@ -152,20 +153,39 @@ backend/app/
 - **Vite** 7.3.1 - Build tool
 - **TypeScript** 5.9.3 - Type safety
 - **Tailwind CSS** 4.1.18 - Styling
+- **TanStack Query** 5.92.9 - Data fetching & state management
+- **Axios** 1.13.5 - HTTP client
+- **Vue Toastification** 2.0.0-rc.5 - Toast notifications
 
 ### Project Structure
 
 ```
 frontend/
 ├── src/
-│   ├── main.ts           # App entry point
-│   ├── App.vue           # Root component
-│   ├── style.css         # Global styles
+│   ├── main.ts              # App entry point
+│   ├── App.vue              # Root component with full CRUD UI
+│   ├── style.css            # Global styles
 │   ├── components/
-│   │   └── HelloWorld.vue
+│   │   ├── Header.vue       # App header with create button
+│   │   ├── SearchInput.vue  # Search/filter component
+│   │   ├── TablaReserva.vue # Data table component
+│   │   └── ModalReserva.vue # Create/edit modal
+│   ├── composables/
+│   │   ├── useReservasQuery.ts          # Fetch reservas
+│   │   ├── useCreateReservaMutation.ts  # Create mutation
+│   │   ├── useUpdateReservaMutation.ts  # Update mutation
+│   │   └── useDeleteReservaMutation.ts  # Delete mutation
+│   ├── api/
+│   │   ├── config.ts        # Axios instance configuration
+│   │   ├── queries.ts       # API query functions
+│   │   └── query-keys.ts    # TanStack Query keys
+│   ├── types/
+│   │   └── reserva.types.ts # TypeScript types for Reserva
+│   ├── utils/
+│   │   └── jsonapi-transformer.ts # JSON:API to plain object transformer
 │   └── assets/
 │       └── vue.svg
-├── vite.config.ts        # Vite configuration with Vue and Tailwind plugins
+├── vite.config.ts           # Vite configuration with Vue and Tailwind plugins
 └── package.json
 ```
 
@@ -174,7 +194,11 @@ frontend/
 - Vue 3 with Composition API (`<script setup>`)
 - TypeScript configured with vue-tsc for type checking
 - Tailwind CSS v4 integrated via Vite plugin
-- Currently contains starter/boilerplate code
+- **Fully functional CRUD application** with complete UI
+- TanStack Query for server state management
+- JSON:API transformer for simplified data handling
+- Real-time search/filtering
+- Toast notifications for user feedback
 
 ## Adding New Features
 
@@ -240,19 +264,33 @@ curl -X POST http://localhost:8000/reservas \
     }
   }'
 
+# Response includes HATEOAS links with methods:
+# {
+#   "data": {
+#     "type": "reservas",
+#     "id": "1",
+#     "attributes": {...},
+#     "links": {
+#       "reservas.obtener": {"href": "http://localhost:8000/reservas/1", "method": "GET"},
+#       "reservas.actualizar": {"href": "http://localhost:8000/reservas/1", "method": "PATCH"},
+#       "reservas.eliminar": {"href": "http://localhost:8000/reservas/1", "method": "DELETE"}
+#     }
+#   }
+# }
+
 # List all reservations
 curl http://localhost:8000/reservas
 
-# Get specific reservation
-curl http://localhost:8000/reservas/{id}
+# Get specific reservation (use sequential ID: 1, 2, 3...)
+curl http://localhost:8000/reservas/1
 
 # Update reservation (JSON:API format)
-curl -X PATCH http://localhost:8000/reservas/{id} \
+curl -X PATCH http://localhost:8000/reservas/1 \
   -H "Content-Type: application/vnd.api+json" \
   -d '{
     "data": {
       "type": "reservas",
-      "id": "{id}",
+      "id": "1",
       "attributes": {
         "nombre_amenity": "Piscina Olímpica"
       }
@@ -260,8 +298,9 @@ curl -X PATCH http://localhost:8000/reservas/{id} \
   }'
 
 # Delete reservation
-curl -X DELETE http://localhost:8000/reservas/{id}
+curl -X DELETE http://localhost:8000/reservas/1
 ```
 
-> **Note**: Requests must follow JSON:API v1.1 format with `data`, `type`, and `attributes`.  
+> **Note**: Requests must follow JSON:API v1.1 format with `data`, `type`, and `attributes`.
+> IDs are sequential integers (1, 2, 3...) returned as strings.
 > See [agents.md](agents.md) for complete API documentation and examples.
